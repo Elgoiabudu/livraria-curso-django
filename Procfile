@@ -1,1 +1,1 @@
-web: gunicorn livraria.wsgi
+web: python manage.py runserver
