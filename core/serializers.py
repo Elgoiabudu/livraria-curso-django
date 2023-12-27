@@ -63,6 +63,12 @@ class ItensCompraSerializer(ModelSerializer):
         return instance.quantidade * instance.livro.preco
 
 
+class CriarEditarItensCompraSerializer(ModelSerializer):
+    class Meta:
+        model = ItensCompra
+        fields = ("livro", "quantidade")
+
+
 class CompraSerializer(ModelSerializer):
     usuario = CharField(source="usuario.email")
     status = SerializerMethodField()
@@ -70,7 +76,23 @@ class CompraSerializer(ModelSerializer):
 
     class Meta:
         model = Compra
-        fields = "__all__"
+        fields = ("id", "status", "usuario", "itens", "total")
 
     def get_status(self, instance):
         return instance.get_status_display()
+
+
+class CriarEditarCompraSerializer(ModelSerializer):
+    itens = CriarEditarItensCompraSerializer(many=True)
+
+    class Meta:
+        model = Compra
+        fields = ("usuario", "itens")
+
+    def create(self, validate_data):
+        itens = validate_data.pop("itens")
+        compra = Compra.objects.create(**validate_data)
+        for item in itens:
+            ItensCompra.objects.create(compra=compra, **item)
+        compra.save()
+        return compra
