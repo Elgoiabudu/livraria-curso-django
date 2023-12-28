@@ -1,4 +1,5 @@
 from rest_framework.serializers import ModelSerializer, CharField, SerializerMethodField
+from rest_framework import serializers
 
 from core.models import Categoria, Editora, Autor, Livro, Compra, ItensCompra
 
@@ -84,21 +85,22 @@ class CompraSerializer(ModelSerializer):
 
 class CriarEditarCompraSerializer(ModelSerializer):
     itens = CriarEditarItensCompraSerializer(many=True)
+    usuario = serializers.HiddenField(default=serializers.CurrentUserDefault()) # Capturando a instancia para identificar o usuário
 
     class Meta:
         model = Compra
-        fields = ("usuario", "itens")
+        fields = ("id", "usuario", "itens")
 
-    def create(self, validate_data):
+    def create(self, validate_data):        
         itens = validate_data.pop("itens")
         compra = Compra.objects.create(**validate_data)
         for item in itens:
-            ItensCompra.objects.create(compra=compra, **item)
+            ItensCompra.objects.create(compra=compra, **item)        
         compra.save()
         return compra
 
     def update(self, instance, validated_data):
-        itens = validated_data.pop('itens')
+        itens = validated_data.pop("itens")
         if itens:
             instance.itens.all().delete()
             for item in itens:
