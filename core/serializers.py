@@ -42,7 +42,7 @@ class LivroDetailSerializer(ModelSerializer):
     class Meta:
         model = Livro
         fields = "__all__"
-        depth = 1  # Exibe um nível a mais no rsponse.
+        depth = 1  # Exibe um nível a mais no response.
 
     def get_autores(self, instance):
         nomes_autores = []
@@ -69,6 +69,13 @@ class CriarEditarItensCompraSerializer(ModelSerializer):
         model = ItensCompra
         fields = ("livro", "quantidade")
 
+    def validate(self, data):
+        if data["quantidade"] > data["livro"].quantidade:
+            raise serializers.ValidationError(
+                {"quantidade": "Quantidade solicitada não disponível em estoque."}
+            )
+        return data
+
 
 class CompraSerializer(ModelSerializer):
     usuario = CharField(source="usuario.email")
@@ -85,17 +92,19 @@ class CompraSerializer(ModelSerializer):
 
 class CriarEditarCompraSerializer(ModelSerializer):
     itens = CriarEditarItensCompraSerializer(many=True)
-    usuario = serializers.HiddenField(default=serializers.CurrentUserDefault()) # Capturando a instancia para identificar o usuário
+    usuario = serializers.HiddenField(
+        default=serializers.CurrentUserDefault()
+    )  # Capturando a instancia para identificar o usuário
 
     class Meta:
         model = Compra
         fields = ("id", "usuario", "itens")
 
-    def create(self, validate_data):        
+    def create(self, validate_data):
         itens = validate_data.pop("itens")
         compra = Compra.objects.create(**validate_data)
         for item in itens:
-            ItensCompra.objects.create(compra=compra, **item)        
+            ItensCompra.objects.create(compra=compra, **item)
         compra.save()
         return compra
 
